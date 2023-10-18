@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from PIL import Image
-from util import Rectangle, rectangles_are_equal, rectangles_collided, custom_round, compare_strings_ignore_trailing_numbers
+from util import Rectangle, rectangles_collided
+from xmlparser import FNFXmlParser
 
 # Path to the spritesheet file
 SPRITESHEET_FILE_PATH = "example/BOYFRIEND"
@@ -17,45 +18,18 @@ MAX_HEIGHT = 256
 ANIMATION_NAMES = ["BF idle dance", "BF NOTE LEFT", "BF NOTE DOWN", "BF NOTE UP", "BF NOTE RIGHT"]
 
 def load_image(file_path):
+    """Loads the PNG file and return it."""
     png_file = Image.open(file_path)
     print(f"Loading {file_path}...")
     print("Loaded!")
 
     return png_file
 
-def load_xml(file_path):
-    xml_file = ET.parse(file_path).getroot()
-    print(f"Loading {file_path}...")
-    print("Loaded!")
-
-    return xml_file
-
-def extract_sprite_attributes(xml_data) -> list[Rectangle]:
-    sprite_attributes: list[Rectangle] = []
-
-    for animation_name in ANIMATION_NAMES:
-        for sub_texture in xml_data.findall("SubTexture"):
-            # Check if the provided XML animation name matches the current XML animation name
-            if not compare_strings_ignore_trailing_numbers(animation_name, sub_texture.get("name")):
-                continue
-
-            # Create a sprite rectangle and scale its attributes if needed
-            sprite_rect = Rectangle(
-                x=custom_round(int(sub_texture.get("x")) * SCALE_FACTOR),
-                y=custom_round(int(sub_texture.get("y")) * SCALE_FACTOR),
-                width=custom_round(int(sub_texture.get("width")) * SCALE_FACTOR),
-                height=custom_round(int(sub_texture.get("height")) * SCALE_FACTOR)
-            )
-
-            # Check if the same frame exists in the XML list
-            if any(rectangles_are_equal(sprite_rect, existing_rect) for existing_rect in sprite_attributes):
-                continue
-
-            sprite_attributes.append(sprite_rect)
-
-    return sprite_attributes
-
-def trim_sprites(xml_attributes: list[Rectangle], spritesheet: Image) -> list[Rectangle]:
+def get_sprites_coordinates(xml_attributes: list[Rectangle], spritesheet: Image) -> list[Rectangle]:
+    """
+        Returns a sprite coordinate list. The main difference from the XML list is that this function 
+        will remove any empty space that the sprite could have, ensuring efficient packing.
+    """
     sprites_rect: list[Rectangle] = []
 
     for attribute in xml_attributes:
@@ -68,7 +42,7 @@ def trim_sprites(xml_attributes: list[Rectangle], spritesheet: Image) -> list[Re
 
         bbox = sprite.getbbox()
 
-        # Create a trimmed sprite rectangle
+        # Create a sprite rectangle without having empty space
         sprite_rect = Rectangle(
             x=attribute.x + bbox[0],
             y=attribute.y + bbox[1],
@@ -81,6 +55,7 @@ def trim_sprites(xml_attributes: list[Rectangle], spritesheet: Image) -> list[Re
     return sprites_rect
 
 def organize_sprite_positions(sprites_rect: list[Rectangle]) -> list[Rectangle]:
+    """Returns an organized sprite list that will be used for packing the images."""
     organized_sprites: list[Rectangle] = []
     current_pos_x = 0
     current_pos_y = 0
@@ -122,8 +97,8 @@ def organize_sprite_positions(sprites_rect: list[Rectangle]) -> list[Rectangle]:
 
     return organized_sprites
 
-# Function to pack sprites into multiple images or only a single one
 def pack_sprites(spritesheet: Image, sprite_positions: list[Rectangle]):
+    """Pack the sprites into as many images as needed using the sprite position list."""
     current_counter = 0
     current_image = Image.new("RGBA", (MAX_WIDTH, MAX_HEIGHT))
 
@@ -132,14 +107,14 @@ def pack_sprites(spritesheet: Image, sprite_positions: list[Rectangle]):
 
         sprite_image = spritesheet.crop((sprite.x, sprite.y, sprite.width + sprite.x, sprite.height + sprite.y))
 
-        # Check if the sprite counter has changed, and if it does save the image and create another one
+        # Check if the sprite counter has changed, and if it does, save the image and create another one
         if current_counter != sprite.counter:
             current_image.save(image_name)
             current_counter = sprite.counter
             current_image = Image.new("RGBA", (MAX_WIDTH, MAX_HEIGHT))
             print(f"Packing sprite: {image_name}")
 
-        # Check if the current sprite is the last one, and if it does force to save the image to avoid bugs
+        # Check if the current sprite is the last one, and if it is, force saving the image to avoid bugs
         if sprite == sprite_positions[-1]:
             image_name = f"{BASE_IMAGE_NAME}{str(current_counter)}.png"
             current_image.paste(sprite_image, (sprite.pos_x, sprite.pos_y))
@@ -148,20 +123,19 @@ def pack_sprites(spritesheet: Image, sprite_positions: list[Rectangle]):
 
         current_image.paste(sprite_image, (sprite.pos_x, sprite.pos_y))
 
-
 def main():
     spritesheet_image = load_image(SPRITESHEET_FILE_PATH + ".png")
-    xml_data = load_xml(SPRITESHEET_FILE_PATH + ".xml")
+    sprite_xml = FNFXmlParser(scale=SCALE_FACTOR)
+    sprite_xml.load(SPRITESHEET_FILE_PATH + ".xml")
+    sprite_xml.parse_sprites_coordinates(ANIMATION_NAMES)
 
     if spritesheet_image.mode == "P":
         print("Warning: Image is indexed; converting to RGBA")
         spritesheet_image = spritesheet_image.convert(mode="RGBA")
 
-    sprite_attributes_list = extract_sprite_attributes(xml_data)
-    trimmed_sprite_attributes = trim_sprites(sprite_attributes_list, spritesheet_image)
+    trimmed_sprite_attributes = get_sprites_coordinates(sprite_xml.sprites_coordinates, spritesheet_image)
     organized_sprite_positions = organize_sprite_positions(trimmed_sprite_attributes)
     pack_sprites(spritesheet_image, organized_sprite_positions)
-
 
 if __name__ == "__main__":
     main()
