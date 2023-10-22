@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 from util import Rectangle, compare_strings_ignore_trailing_numbers, custom_round, rectangles_are_equal
 
-class FNFXmlParser:
+class XmlParser:
     def __init__(self, scale : float):
         self.scale : float = scale
         self.sprites_coordinates : list[Rectangle] = []
