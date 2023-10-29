@@ -1,6 +1,12 @@
 from PIL import Image
 from util import Rectangle, rectangles_collided
 
+class ImageRectangle(Rectangle):
+    def __init__(self, x, y, width, height, counter, pos_x, pos_y, offset_x, offset_y):
+        super().__init__(x=x, y=y, width=width, height=height, counter=counter, pos_x=pos_x, pos_y=pos_y)
+        self.offset_x = offset_x
+        self.offset_y = offset_y
+
 # Max image size
 MAX_WIDTH = 256
 MAX_HEIGHT = 256
@@ -45,24 +51,26 @@ class ImageHandler:
         current_counter = 0
 
         for i in self.sprite_coordinates:
-            sprite_rect = Rectangle(
+            sprite_rect = ImageRectangle(
                 x=i.x,
                 y=i.y,
                 width=i.width,
                 height=i.height,
                 counter=current_counter,
                 pos_x=current_pos_x,
-                pos_y=current_pos_y
+                pos_y=current_pos_y,
+                offset_x=i.pos_x,
+                offset_y=i.pos_y
             )
 
-            if sprite_rect.pos_x + sprite_rect.width > MAX_WIDTH:
+            if sprite_rect.pos_x + sprite_rect.width > MAX_WIDTH - 1:
                 sprite_rect.pos_x = 0
                 sprite_rect.pos_y = 0
 
             while any(rect.counter == sprite_rect.counter and rectangles_collided(sprite_rect, rect) for rect in self.organized_sprites):
                 sprite_rect.pos_y += 1
 
-            if sprite_rect.pos_y + sprite_rect.height > MAX_HEIGHT:
+            if sprite_rect.pos_y + sprite_rect.height > MAX_HEIGHT - 1:
                 sprite_rect.pos_x = sprite_rect.pos_y = 0
                 sprite_rect.counter += 1
 
@@ -90,7 +98,7 @@ class ImageHandler:
                 current_image = Image.new("RGBA", (MAX_WIDTH, MAX_HEIGHT))
                 print(f"Packing sprite: {image_name}")
 
-            if sprite == self.sprite_coordinates[-1]:
+            if sprite == self.organized_sprites[-1]:
                 image_name = f"{self.image_name}{str(current_counter)}.png"
                 current_image.paste(sprite_image, (sprite.pos_x, sprite.pos_y))
                 current_image.save(image_name)
@@ -115,7 +123,9 @@ class ImageHandler:
             x=sprite_rect.x + bbox[0],
             y=sprite_rect.y + bbox[1],
             width=bbox[2] - bbox[0],
-            height=bbox[3] - bbox[1]
+            height=bbox[3] - bbox[1],
+            pos_x=sprite_rect.pos_x - bbox[0],
+            pos_y=sprite_rect.pos_y - bbox[1]
         )
 
         return adjusted_sprite
