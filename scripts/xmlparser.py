@@ -2,13 +2,13 @@ import xml.etree.ElementTree as ET
 from util import Rectangle, rectangles_are_equal
 import re
 
-def compare_strings_ignore_trailing_numbers(str1: str, str2: str):
+def compare_strings_ignore_trailing_numbers(str1: str, str2: str) -> bool:
     """Check if both strings are the same, ignoring trailing numbers."""
     str1_stripped = re.sub(r"\d+$", "", str1)
     str2_stripped = re.sub(r"\d+$", "", str2)
     return str1_stripped == str2_stripped
 
-def custom_round(value: float):
+def custom_round(value: float) -> float:
     """Custom rounding function to round 0.5 up and -0.5 or less down."""
     if value >= 0:
         return int(value + 0.5)
@@ -16,11 +16,11 @@ def custom_round(value: float):
         return int(value - 0.5)
 
 class XmlParser:
-    def __init__(self, scale : float):
-        self.scale : float = scale
+    def __init__(self, scale : float) -> None:
+        self.scale = scale
         self.sprites_coordinates : list[Rectangle] = []
 
-    def load(self, file_path : str):
+    def load(self, file_path : str) -> None:
         """Loads the XML file and returns the parsed XML."""
         self.xml_root = ET.parse(file_path).getroot()
         print(f"Loading {file_path}...")
