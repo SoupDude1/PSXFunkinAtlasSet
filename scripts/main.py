@@ -26,7 +26,7 @@ def main():
     sprite_png.organize_sprites_positions()
     sprite_png.pack_sprites()
 
-    with open(bf + ".h", "w") as f:
+    with open(BASE_IMAGE_NAME + ".h", "w") as f:
         for i in sprite_png.organized_sprites:
             f.write(f"{{{i.counter}, {{{i.pos_x}, {i.pos_y}, {i.width}, {i.height}}}")
             f.write(f", {{{i.offset_x}, {i.offset_y}}}}}, \n")
