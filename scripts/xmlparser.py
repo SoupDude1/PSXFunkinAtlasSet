@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from util import Rectangle, rectangles_are_equal
+from util import Rectangle, rectangles_are_equal, ErrorScreen
 import re
 
 def compare_strings_ignore_trailing_numbers(str1: str, str2: str) -> bool:
@@ -17,14 +17,22 @@ def custom_round(value: float) -> float:
 
 class XmlParser:
     def __init__(self, scale : float) -> None:
-        self.scale = scale
+        try:
+            self.scale = float(scale)
+        except:
+            ErrorScreen.message("Invalid scale factor number!")
+
         self.sprites_coordinates : list[Rectangle] = []
 
     def load(self, file_path : str) -> None:
         """Loads the XML file and returns the parsed XML."""
-        self.xml_root = ET.parse(file_path).getroot()
-        print(f"Loading {file_path}...")
-        print("Loaded!")
+        try:
+            self.xml_root = ET.parse(file_path).getroot()
+            print(f"Loading {file_path}...")
+            print("Loaded!")
+
+        except:
+            ErrorScreen.message(f"Failed to load the xml: {file_path}")
 
     def parse_sprites_coordinates(self, animation_names: list[str], animation_offsets: list[tuple]) -> None:
         """Parses the coordinates of the sprites and adds them to self.sprites_coordinates if they meet the criteria."""

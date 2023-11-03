@@ -1,5 +1,5 @@
 from PIL import Image
-from util import Rectangle, rectangles_collided
+from util import Rectangle, rectangles_collided, ErrorScreen
 
 class ImageRectangle(Rectangle):
     def __init__(self, x, y, width, height, counter, pos_x, pos_y, offset_x, offset_y):
@@ -31,9 +31,12 @@ class ImageHandler:
 
     def load(self, path: str) -> None:
         """Load a PNG file to the spritesheet member."""
-        self.spritesheet = Image.open(path)
-        print(f"Loading {path}...")
-        print("Loaded!")
+        try:
+            self.spritesheet = Image.open(path)
+            print(f"Loading {path}...")
+            print("Loaded!")
+        except:
+            ErrorScreen.message(f"Failed to load the png: {file_path}")
 
         if self.spritesheet.mode == "P":
             print(f"Warning: Spritesheet is indexed; converting to RGBA")
@@ -109,14 +112,14 @@ class ImageHandler:
 
     def _crop_spritesheet(self, sprite_rect : Rectangle):
         if self.spritesheet is None:
-            raise TypeError("Failed to crop spritesheet")
+            ErrorScreen.message(f"Failed to crop the spritesheet: {file_path}")
 
         return self.spritesheet.crop((sprite_rect.x, sprite_rect.y, sprite_rect.width + sprite_rect.x, sprite_rect.height + sprite_rect.y))
 
     def _remove_empty_space_from_sprite(self, sprite_image, sprite_rect: Rectangle) -> Rectangle:
         """Remove empty space from the given sprite."""
         if sprite_image.getbbox() is None:
-            raise TypeError("Failed to pack sprites; check for empty sprite spaces or correct XML scale")
+            ErrorScreen.message("Failed to pack sprites; check for empty sprite spaces or if it's the correct XML scale")
 
         bbox = sprite_image.getbbox()
 
@@ -133,8 +136,6 @@ class ImageHandler:
 
     def _set_new_image_size_based_on_bpp(self, image_size : tuple, bpp : int) -> tuple:
         """Set new pillow image size based on the bpp"""
-        if image_size is None:
-             raise TypeError("Failed to set image size")
 
         # For PlayStation images, the width requirements depend on the bits per pixel (bpp). 
         # While in height it don't matter, I'm making it multiples of 2 cuz yes lol.
